@@ -1,0 +1,21 @@
+RewriteEngine On
+
+# Public backend entry point
+RewriteCond %{REQUEST_URI} !^/backend/admin/ [NC]
+RewriteCond %{REQUEST_URI} !^/backend/uploads/ [NC]
+RewriteRule ^api/(.*)$ backend/api/index.php [QSA,L]
+
+# Block direct access to config files
+<FilesMatch "^(config.php|database.php)$">
+    Require all denied
+</FilesMatch>
+
+# Deny direct access to includes folder
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
+# Secure PHP session cookie config
+php_flag session.cookie_httponly on
+php_flag session.use_only_cookies on
+php_value session.cookie_samesite Lax

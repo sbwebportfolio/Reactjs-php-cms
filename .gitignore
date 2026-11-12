@@ -1,0 +1,17 @@
+# .gitignore
+node_modules/
+.env
+.env.*
+.vscode/
+.DS_Store
+*.log
+/backend/logs/*.log
+/backend/uploads/*
+!backend/uploads/.gitkeep
+!backend/uploads/logos/.gitkeep
+!backend/uploads/banners/.gitkeep
+!backend/uploads/projects/.gitkeep
+!backend/uploads/news/.gitkeep
+!backend/uploads/blogs/.gitkeep
+!backend/uploads/testimonials/.gitkeep
+!backend/uploads/documents/.gitkeep
