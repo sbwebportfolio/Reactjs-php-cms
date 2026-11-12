@@ -21,6 +21,8 @@ try {
     if (($route[0] ?? '') === 'admin') {
         array_shift($route);
         $handler = require __DIR__ . '/routes/admin.php';
+    } elseif (($route[0] ?? '') === 'news') {
+        $handler = require __DIR__ . '/routes/news.php';
     } else {
         $handler = require __DIR__ . '/routes/public.php';
     }
