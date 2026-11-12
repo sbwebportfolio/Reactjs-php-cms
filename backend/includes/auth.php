@@ -1,209 +1,127 @@
 <?php
 /**
- * Shared helper functions and common application utilities.
+ * Admin authentication helpers.
  */
 
-require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/functions.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_name(SESSION_NAME);
-    session_set_cookie_params([
-        'lifetime' => SESSION_LIFETIME,
-        'path' => '/',
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
-    session_start();
-}
-
-function dbConnection(): mysqli
+function requireAdminAuth(): void
 {
-    static $connection = null;
-
-    if ($connection instanceof mysqli) {
-        return $connection;
+    if (!isAdminLoggedIn()) {
+        redirect('/backend/admin/login.php');
     }
-
-    $config = require __DIR__ . '/../config/database.php';
-
-    $connection = @new mysqli(
-        $config['host'],
-        $config['username'],
-        $config['password'],
-        $config['database'],
-        $config['port']
-    );
-
-    if ($connection->connect_error) {
-        throw new RuntimeException('Database connection failed: ' . $connection->connect_error);
-    }
-
-    if (!$connection->set_charset($config['charset'])) {
-        throw new RuntimeException('Database charset failed: ' . $connection->error);
-    }
-
-    return $connection;
 }
 
-function configValue(string $key, $default = null)
+function isAdminLoggedIn(): bool
 {
-    static $config = null;
-
-    if ($config === null) {
-        $config = require __DIR__ . '/../config/config.php';
-    }
-
-    return $config[$key] ?? $default;
+    return !empty($_SESSION['admin']['id']) && !empty($_SESSION['admin']['email']);
 }
 
-function jsonResponse(bool $success, $data = null, string $message = '', string $code = 'SUCCESS', int $statusCode = 200): void
+function getAdminSession(): ?array
 {
-    http_response_code($statusCode);
-    header('Content-Type: application/json; charset=utf-8');
-
-    echo json_encode([
-        'success' => $success,
-        'data' => $data,
-        'message' => $message,
-        'code' => $code,
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-    exit;
+    return $_SESSION['admin'] ?? null;
 }
 
-function currentRequestPath(): string
+function adminLogin(string $email, string $password): bool
 {
-    $uri = $_SERVER['REQUEST_URI'] ?? '/';
-    $parts = parse_url($uri);
-    return $parts['path'] ?? '/';
-}
-
-function redirect(string $url): void
-{
-    if (!headers_sent()) {
-        header('Location: ' . $url);
-    }
-    exit;
-}
-
-function sanitizeString($value, int $maxLength = 255): string
-{
-    $value = trim((string) $value);
-    $value = strip_tags($value);
-    $value = preg_replace('/\s+/', ' ', $value);
-
-    if ($maxLength > 0 && mb_strlen($value) > $maxLength) {
-        $value = mb_substr($value, 0, $maxLength);
-    }
-
-    return $value;
-}
-
-function sanitizeEmail(string $email): string
-{
-    return strtolower(trim(filter_var($email, FILTER_SANITIZE_EMAIL)));
-}
-
-function generateCsrfToken(): string
-{
-    if (empty($_SESSION[CSRF_TOKEN_NAME])) {
-        $_SESSION[CSRF_TOKEN_NAME] = bin2hex(random_bytes(32));
-    }
-
-    return $_SESSION[CSRF_TOKEN_NAME];
-}
-
-function validateCsrfToken(?string $token): bool
-{
-    if (empty($token) || empty($_SESSION[CSRF_TOKEN_NAME])) {
+    $email = sanitizeEmail($email);
+    if ($email === '' || $password === '') {
         return false;
     }
 
-    return hash_equals($_SESSION[CSRF_TOKEN_NAME], $token);
-}
+    try {
+        $conn = dbConnection();
+        $stmt = $conn->prepare('SELECT id, name, email, password_hash, status FROM admins WHERE email = ? LIMIT 1');
+        $stmt->bind_param('s', $email);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $admin = $result->fetch_assoc();
+        $stmt->close();
 
-function setFlash(string $key, string $message): void
-{
-    $_SESSION['flash'][$key] = $message;
-}
-
-function getFlash(string $key): ?string
-{
-    $message = $_SESSION['flash'][$key] ?? null;
-    unset($_SESSION['flash'][$key]);
-    return $message;
-}
-
-function slugify(string $text): string
-{
-    $text = strtolower(trim($text));
-    $text = preg_replace('/[^a-z0-9\s-]+/', '', $text);
-    $text = preg_replace('/\s+/', '-', $text);
-    $text = preg_replace('/-+/', '-', $text);
-    return trim($text, '-');
-}
-
-function parsePagination(array $request, int $defaultLimit = DEFAULT_PAGE_SIZE): array
-{
-    $page = isset($request['page']) ? max(1, (int) $request['page']) : 1;
-    $limit = isset($request['limit']) ? max(1, (int) $request['limit']) : $defaultLimit;
-    $offset = ($page - 1) * $limit;
-
-    return [
-        'page' => $page,
-        'limit' => min($limit, 100),
-        'offset' => $offset,
-    ];
-}
-
-function ensureUploadsDirectory(string $subFolder = ''): string
-{
-    $base = APP_UPLOAD_PATH;
-
-    if ($subFolder !== '') {
-        $path = rtrim($base, '/') . '/' . ltrim($subFolder, '/');
-    } else {
-        $path = $base;
-    }
-
-    if (!is_dir($path)) {
-        mkdir($path, 0775, true);
-    }
-
-    return $path;
-}
-
-function getClientIp(): string
-{
-    foreach (['HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'] as $key) {
-        if (!empty($_SERVER[$key])) {
-            $value = $_SERVER[$key];
-            if (strpos($value, ',') !== false) {
-                $parts = explode(',', $value);
-                $value = trim($parts[0]);
-            }
-            return $value;
+        if (!$admin) {
+            return false;
         }
-    }
 
-    return '0.0.0.0';
+        if ($admin['status'] !== 'active') {
+            return false;
+        }
+
+        if (!password_verify($password, $admin['password_hash'])) {
+            return false;
+        }
+
+        session_regenerate_id(true);
+        $_SESSION['admin'] = [
+            'id' => (int) $admin['id'],
+            'name' => $admin['name'],
+            'email' => $admin['email'],
+            'login_time' => time(),
+        ];
+
+        $stmt = $conn->prepare('UPDATE admins SET last_login_at = NOW() WHERE id = ?');
+        $stmt->bind_param('i', $admin['id']);
+        $stmt->execute();
+        $stmt->close();
+
+        return true;
+    } catch (Throwable $e) {
+        error_log('Admin login failed: ' . $e->getMessage());
+        return false;
+    }
 }
 
-function logActivity(?int $adminId, string $action, ?string $entityType = null, ?int $entityId = null, ?array $details = null): void
+function adminLogout(): void
 {
+    $_SESSION = [];
+    if (ini_get('session.use_cookies')) {
+        $params = session_get_cookie_params();
+        setcookie(
+            session_name(),
+            '',
+            time() - 42000,
+            $params['path'],
+            $params['domain'],
+            $params['secure'],
+            $params['httponly']
+        );
+    }
+    session_destroy();
+}
+
+function userHasPermission(string $permissionKey): bool
+{
+    if (!isAdminLoggedIn()) {
+        return false;
+    }
+
+    $adminId = (int) $_SESSION['admin']['id'];
+
     try {
         $conn = dbConnection();
         $stmt = $conn->prepare(
-            'INSERT INTO activity_logs (admin_id, action, entity_type, entity_id, details_json, ip_address, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, NOW())'
+            'SELECT COUNT(*) AS total
+             FROM role_permissions rp
+             INNER JOIN admin_roles ar ON ar.role_id = rp.role_id
+             INNER JOIN permissions p ON p.id = rp.permission_id
+             WHERE ar.admin_id = ? AND p.permission_key = ?'
         );
-
-        $ip = getClientIp();
-        $payload = $details ? json_encode($details, JSON_UNESCAPED_SLASHES) : null;
-
-        $stmt->bind_param('isiiis', $adminId, $action, $entityType, $entityId, $payload, $ip);
+        $stmt->bind_param('is', $adminId, $permissionKey);
         $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
         $stmt->close();
+
+        return !empty($row['total']) && (int) $row['total'] > 0;
     } catch (Throwable $e) {
-        error_log('Log activity failed: ' . $e->getMessage());
+        error_log('Permission check failed: ' . $e->getMessage());
+        return false;
+    }
+}
+
+function requirePermission(string $permissionKey): void
+{
+    if (!userHasPermission($permissionKey)) {
+        http_response_code(403);
+        jsonResponse(false, null, 'Forbidden. You do not have permission to access this resource.', 'FORBIDDEN', 403);
     }
 }

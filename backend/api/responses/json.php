@@ -1,13 +1,16 @@
 <?php
 /**
- * API middleware for admin authentication.
+ * API response helpers.
  */
 
-require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../includes/functions.php';
 
-function enforceAdminApiAuth(): void
+function apiSuccess($data = null, string $message = 'Request completed successfully.', int $statusCode = 200): void
 {
-    if (!isAdminLoggedIn()) {
-        jsonResponse(false, null, 'Authentication required.', 'UNAUTHORIZED', 401);
-    }
+    jsonResponse(true, $data, $message, 'SUCCESS', $statusCode);
+}
+
+function apiError(string $message, string $code = 'ERROR', int $statusCode = 400, $details = null): void
+{
+    jsonResponse(false, $details, $message, $code, $statusCode);
 }
