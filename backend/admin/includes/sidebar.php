@@ -1,32 +1,35 @@
 <?php
-require_once __DIR__ . '/../../includes/auth.php';
-requireAdminAuth();
-
-$admin = getAdminSession();
-$pageTitle = $pageTitle ?? 'Dashboard';
+$navItems = [
+    ['label' => 'Dashboard', 'icon' => '⌂', 'href' => '/backend/admin/dashboard.php'],
+    ['label' => 'Pages', 'icon' => '▣', 'href' => '/backend/admin/pages.php'],
+    ['label' => 'Homepage', 'icon' => '◫', 'href' => '/backend/admin/homepage.php'],
+    ['label' => 'Projects', 'icon' => '▤', 'href' => '/backend/admin/projects.php'],
+    ['label' => 'News', 'icon' => '◌', 'href' => '/backend/admin/news.php'],
+    ['label' => 'Press Releases', 'icon' => '◍', 'href' => '/backend/admin/press.php'],
+    ['label' => 'Blog', 'icon' => '✎', 'href' => '/backend/admin/blog.php'],
+    ['label' => 'Testimonials', 'icon' => '★', 'href' => '/backend/admin/testimonials.php'],
+    ['label' => 'Media', 'icon' => '◫', 'href' => '/backend/admin/media.php'],
+    ['label' => 'Contact Inquiries', 'icon' => '✉', 'href' => '/backend/admin/inquiries.php'],
+    ['label' => 'Users', 'icon' => '👤', 'href' => '/backend/admin/users.php'],
+    ['label' => 'Settings', 'icon' => '⚙', 'href' => '/backend/admin/settings.php'],
+];
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?> | Corporate CMS</title>
-    <link rel="stylesheet" href="/backend/admin/assets/css/admin.css">
-</head>
-<body>
-    <div class="admin-shell">
-        <?php include __DIR__ . '/sidebar.php'; ?>
-        <main class="main-panel">
-            <header class="topbar">
-                <div>
-                    <p class="eyebrow">Administration</p>
-                    <h1><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></h1>
-                </div>
-                <div class="topbar-actions">
-                    <span class="badge">Logged in as <?= htmlspecialchars($admin['name'] ?? 'Admin', ENT_QUOTES, 'UTF-8') ?></span>
-                    <form method="POST" action="/backend/admin/logout.php">
-                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
-                        <button type="submit" class="btn btn-ghost">Logout</button>
-                    </form>
-                </div>
-            </header>
+<aside class="sidebar">
+    <div class="brand-block">
+        <div class="brand-mark">C</div>
+        <div>
+            <strong>Corporate CMS</strong>
+            <small>Admin Panel</small>
+        </div>
+    </div>
+
+    <nav class="nav-menu" aria-label="Sidebar navigation">
+        <?php foreach ($navItems as $item): ?>
+            <?php $isActive = ((string) ($_SERVER['REQUEST_URI'] ?? '')) === $item['href'] || strpos((string) ($_SERVER['REQUEST_URI'] ?? ''), basename($item['href'])) !== false; ?>
+            <a class="nav-item <?= $isActive ? 'active' : '' ?>" href="<?= htmlspecialchars($item['href'], ENT_QUOTES, 'UTF-8') ?>">
+                <span class="nav-icon"><?= htmlspecialchars($item['icon'], ENT_QUOTES, 'UTF-8') ?></span>
+                <span><?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?></span>
+            </a>
+        <?php endforeach; ?>
+    </nav>
+</aside>
