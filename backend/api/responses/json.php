@@ -1,9 +1,6 @@
 <?php
-/**
- * API response helpers.
- */
-
-require_once __DIR__ . '/../includes/functions.php';
+/** API response helpers. */
+require_once __DIR__ . '/../../includes/functions.php';
 
 function apiSuccess($data = null, string $message = 'Request completed successfully.', int $statusCode = 200): void
 {

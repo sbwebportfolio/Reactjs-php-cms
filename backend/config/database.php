@@ -1,8 +1,5 @@
 <?php
-/**
- * MySQLi database configuration.
- */
-
+/** MySQLi connection options. */
 require_once __DIR__ . '/config.php';
 
 return [
@@ -10,6 +7,6 @@ return [
     'username' => getenv('DB_USERNAME') ?: 'root',
     'password' => getenv('DB_PASSWORD') ?: '',
     'database' => getenv('DB_DATABASE') ?: 'corporate_cms',
-    'port' => getenv('DB_PORT') ?: 3306,
+    'port' => (int) (getenv('DB_PORT') ?: 3306),
     'charset' => 'utf8mb4',
 ];

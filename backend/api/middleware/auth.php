@@ -1,58 +1,18 @@
 <?php
-/**
- * Validation helpers.
- */
+/** Session-authenticated API guard; state-changing calls require CSRF validation. */
+require_once __DIR__ . '/../../includes/auth.php';
 
-require_once __DIR__ . '/functions.php';
-
-function validateRequired(array $fields, array $payload): array
+function enforceAdminApiAuth(): void
 {
-    $errors = [];
+    if (!isAdminLoggedIn()) {
+        jsonResponse(false, null, 'Authentication required.', 'UNAUTHORIZED', 401);
+    }
 
-    foreach ($fields as $field) {
-        if (!isset($payload[$field]) || trim((string) $payload[$field]) === '') {
-            $errors[$field] = ucfirst(str_replace('_', ' ', $field)) . ' is required.';
+    $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+    if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
+        $token = requestHeader('X-CSRF-Token');
+        if (!validateCsrfToken($token)) {
+            jsonResponse(false, null, 'A valid CSRF token is required.', 'CSRF_INVALID', 419);
         }
     }
-
-    return $errors;
-}
-
-function validateEmailField(string $email): ?string
-{
-    $email = sanitizeEmail($email);
-    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        return 'Please provide a valid email address.';
-    }
-
-    return null;
-}
-
-function validateStringLength(string $value, int $minLength, int $maxLength, string $fieldLabel): ?string
-{
-    $value = trim($value);
-    $length = mb_strlen($value);
-
-    if ($length < $minLength) {
-        return $fieldLabel . ' must be at least ' . $minLength . ' characters.';
-    }
-
-    if ($length > $maxLength) {
-        return $fieldLabel . ' must not exceed ' . $maxLength . ' characters.';
-    }
-
-    return null;
-}
-
-function normalizeInput($value)
-{
-    if (is_array($value)) {
-        return array_map('normalizeInput', $value);
-    }
-
-    if (is_string($value)) {
-        return trim(strip_tags($value));
-    }
-
-    return $value;
 }
