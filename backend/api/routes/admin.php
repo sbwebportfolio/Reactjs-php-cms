@@ -1,63 +1,47 @@
 <?php
 /**
- * Public API endpoints.
+ * Admin API endpoints.
  */
 
 require_once __DIR__ . '/../responses/json.php';
+require_once __DIR__ . '/../../includes/auth.php';
 
 return function ($method, $pathParts): void {
-    if ($method === 'GET' && $pathParts[0] === 'health') {
-        apiSuccess([
-            'app' => APP_NAME,
-            'status' => 'ok',
-            'timestamp' => date('c'),
-        ], 'API is healthy.');
-    }
+    enforceAdminApiAuth();
 
-    if ($method === 'GET' && $pathParts[0] === 'homepage') {
-        apiSuccess([
-            'site_name' => APP_NAME,
-            'sections' => [
-                'hero' => true,
-                'about' => true,
-                'projects' => true,
-                'testimonials' => true,
-            ],
-        ], 'Homepage data loaded successfully.');
-    }
+    if ($method === 'GET' && ($pathParts[0] ?? '') === 'dashboard') {
+        requirePermission('dashboard.view');
 
-    if ($method === 'POST' && $pathParts[0] === 'contact') {
-        $input = $_POST;
-        $errors = validateRequired(['name', 'email', 'subject', 'message'], $input);
-        $emailError = validateEmailField($input['email'] ?? '');
-
-        if ($emailError) {
-            $errors['email'] = $emailError;
-        }
-
-        if (!empty($errors)) {
-            apiError('Validation failed.', 'VALIDATION_ERROR', 422, $errors);
-        }
+        $stats = [
+            'pages' => 0,
+            'projects' => 0,
+            'news' => 0,
+            'blog' => 0,
+            'inquiries' => 0,
+        ];
 
         apiSuccess([
-            'submitted' => true,
-            'message' => 'Your message has been received successfully.',
-        ], 'Contact form submitted successfully.');
+            'admin' => getAdminSession(),
+            'stats' => $stats,
+        ], 'Dashboard summary loaded successfully.');
     }
 
-    if ($method === 'POST' && $pathParts[0] === 'newsletter') {
-        $email = sanitizeEmail($_POST['email'] ?? '');
-        $error = validateEmailField($email);
+    if ($method === 'GET' && ($pathParts[0] ?? '') === 'permissions') {
+        requirePermission('users.manage');
 
-        if ($error) {
-            apiError('Newsletter validation failed.', 'VALIDATION_ERROR', 422, ['email' => $error]);
-        }
+        $permissions = [
+            'dashboard.view',
+            'pages.manage',
+            'projects.manage',
+            'news.manage',
+            'blog.manage',
+            'media.manage',
+            'settings.manage',
+            'users.manage',
+        ];
 
-        apiSuccess([
-            'subscribed' => true,
-            'email' => $email,
-        ], 'Newsletter subscription successful.');
+        apiSuccess(['permissions' => $permissions], 'Permissions loaded successfully.');
     }
 
-    apiError('Public route not found.', 'NOT_FOUND', 404, ['path' => implode('/', $pathParts)]);
+    apiError('Admin route not found.', 'NOT_FOUND', 404, ['path' => implode('/', $pathParts)]);
 };
