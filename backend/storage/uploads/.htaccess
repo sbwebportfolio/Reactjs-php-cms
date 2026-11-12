@@ -1,0 +1,2 @@
+# Media uploads are stored outside the admin source tree. PHP execution in uploads is prohibited.
+Options -Indexes

@@ -18,15 +18,8 @@ $pageTitle = $pageTitle ?? 'Dashboard';
         <?php include __DIR__ . '/sidebar.php'; ?>
         <main class="main-panel">
             <header class="topbar">
-                <div>
-                    <p class="eyebrow">Administration</p>
-                    <h1><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></h1>
-                </div>
-                <div class="topbar-actions">
-                    <span class="badge">Logged in as <?= htmlspecialchars($admin['name'] ?? 'Admin', ENT_QUOTES, 'UTF-8') ?></span>
-                    <form method="POST" action="/backend/admin/logout.php">
-                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>">
-                        <button type="submit" class="btn btn-ghost">Logout</button>
-                    </form>
+                <div><p class="eyebrow">Administration</p><h1><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></h1></div>
+                <div class="topbar-actions"><span class="badge">Logged in as <?= htmlspecialchars($admin['name'] ?? 'Admin', ENT_QUOTES, 'UTF-8') ?></span>
+                    <form method="POST" action="/backend/admin/logout.php"><input type="hidden" name="csrf_token" value="<?= htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8') ?>"><button type="submit" class="btn btn-ghost">Logout</button></form>
                 </div>
             </header>
