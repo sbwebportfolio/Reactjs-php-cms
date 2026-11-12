@@ -5,6 +5,7 @@ $navItems = [
     ['label' => 'Projects', 'icon' => '▤', 'href' => '/backend/admin/projects.php'],
     ['label' => 'News', 'icon' => '◌', 'href' => '/backend/admin/news.php'],
     ['label' => 'Media', 'icon' => '◫', 'href' => '/backend/admin/media.php'],
+    ['label' => 'Contact Inquiries', 'icon' => '✉', 'href' => '/backend/admin/inquiries.php'],
     ['label' => 'Settings', 'icon' => '⚙', 'href' => '/backend/admin/settings.php'],
 ];
 ?>
